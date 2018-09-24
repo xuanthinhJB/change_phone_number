@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity"
+    android:orientation="vertical"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground">
+
+    <android.support.v7.widget.Toolbar
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        app:title="@string/main_activity_title"
+        android:background="@color/colorPrimary"
+        app:titleTextColor="@color/colorMainText"
+        app:titleMarginStart="@dimen/main_activity_toolbar_title_margin_left"/>
+
+    <LinearLayout
+        android:id="@+id/layout_start_transfer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/colorMainBg"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="?attr/selectableItemBackground"
+        android:gravity="center"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/main_activity_lbl_start"
+            android:textColor="@color/colorMainText"
+            android:textSize="25sp" />
+
+    </LinearLayout>
+
+</LinearLayout>

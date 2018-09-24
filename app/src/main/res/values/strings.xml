@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Chuyển số điện thoại</string>
+
+    <!-- Main activity -->
+    <string name="main_activity_title">Màn hình chính</string>
+    <string name="main_activity_lbl_start">Bắt đầu chuyển đổi</string>
+    <string name="main_activity_lbl_transferring">Đang chuyển đổi…</string>
+    <string name="main_activity_lbl_cancel">Hủy</string>
+
+
+</resources>

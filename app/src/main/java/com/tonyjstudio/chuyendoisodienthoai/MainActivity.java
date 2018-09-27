@@ -81,13 +81,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
      * function to start transfer
      */
     private void startTransfer() {
-        showProgressTransferring();
-    }
-
-    /**
-     * function to show a progress bar
-     */
-    private void showProgressTransferring() {
         if (mDialog == null) {
             mDialog = new Dialog(this, R.style.MyDialog);
             mDialog.setContentView(R.layout.progress_dialog);
@@ -95,43 +88,117 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         mDialog.show();
 
-        long id = getRawContactIdByName("tony", "phan");
-
-        ContentResolver contentResolver = getContentResolver();
-        updatePhoneNumber(contentResolver, id, ContactsContract.CommonDataKinds.Phone.TYPE_HOME, "0968252764");
-        //doTransfer();
+        doTransfer();
     }
 
     /**
      * function to do the transfer task
      */
-//    private void doTransfer() {
-//
-//        if (mDialog.isShowing()) {
-//
-//            for (Map.Entry<String, String> entry : mPhoneMap.entrySet()) {
-//
-//                ArrayList<ContentProviderOperation> operationArrayList = new ArrayList<>();
-//                String where =
-//                        //ContactsContract.Data.DISPLAY_NAME + " = ? AND " +
-//                        ContactsContract.Data.MIMETYPE + " ? AND "
-//                                + String.valueOf(ContactsContract.CommonDataKinds.Phone.TYPE).substring(0, entry.getKey().length()) + " = ? ";
-//
-//                String[] params = new String[]{ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE, entry.getKey()};
-//
-//                operationArrayList.add(ContentProviderOperation.newUpdate(ContactsContract.Data.CONTENT_URI)
-//                        .withSelection(where, params)
-//                        .withValue(ContactsContract.CommonDataKinds.Phone.DATA, entry.getValue())
-//                        .build());
-//
-//                try {
-//                    getContentResolver().applyBatch(ContactsContract.AUTHORITY, operationArrayList);
-//                } catch (Exception ex) {
-//                    ex.printStackTrace();
-//                }
-//            }
-//        }
-//    }
+    private void doTransfer() {
+
+        if (mDialog.isShowing()) {
+
+            for (Map.Entry<String, String> entry : mPhoneMap.entrySet()) {
+
+                //long id = getRawContactIdByName("tony", "phan");
+                long id = getRawContactIdByPhoneNumber("016");
+
+//                ContentResolver contentResolver = getContentResolver();
+//                updatePhoneNumber(contentResolver, id, ContactsContract.CommonDataKinds.Phone.TYPE_HOME, "0968252764");
+            }
+        }
+    }
+
+    /*
+     * Get raw contact id by contact given name and family name.
+     *  Return raw contact id.
+     */
+    private long getRawContactIdByPhoneNumber(String phoneNumber) {
+        ContentResolver contentResolver = getContentResolver();
+
+        // Query raw_contacts table by display name field ( given_name family_name ) to get raw contact id.
+
+        // Create query column array.
+        String queryColumnArr[] = {
+                ContactsContract.Contacts._ID,
+                ContactsContract.CommonDataKinds.Phone.NUMBER,
+                ContactsContract.Contacts.DISPLAY_NAME_PRIMARY,
+                ContactsContract.Contacts.PHOTO_THUMBNAIL_URI,
+                ContactsContract.Contacts.LOOKUP_KEY,
+        };
+
+        // Create where condition clause.
+        String whereClause = ContactsContract.Contacts.DISPLAY_NAME_PRIMARY ;     //'" + phoneNumber + "%'";
+
+        // Create filter condition clause
+        String selectionArg[] = {"%" + phoneNumber + "%"};
+
+        // Query raw contact id through RawContacts uri.
+        Uri rawContactUri = ContactsContract.RawContacts.CONTENT_URI;
+
+        // Return the query cursor.
+        Cursor cursor = null;
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED &&
+                ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
+
+            ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.READ_CONTACTS, android.Manifest.permission.WRITE_CONTACTS},
+                    1);
+        } else {
+            try {
+                cursor = contentResolver.query(rawContactUri, null, null, null, null);
+            } catch (Exception ex) {
+                Log.e("ERRRRRRRROR", ex.toString());
+            }
+
+        }
+
+        long rawContactId = 0;
+
+        if (cursor != null) {
+            // Get contact count that has same display name, generally it should be one.
+            int queryResultCount = cursor.getCount();
+            // This check is used to avoid cursor index out of bounds exception. android.database.CursorIndexOutOfBoundsException
+            if (queryResultCount > 0) {
+                cursor.moveToFirst();
+                do {
+                    rawContactId = cursor.getLong(cursor.getColumnIndex(ContactsContract.RawContacts._ID));
+
+                    //
+                    //  Get all phone numbers.
+                    //
+                    Cursor phones = getContentResolver().query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI, null,
+                            ContactsContract.CommonDataKinds.Phone.CONTACT_ID + " = " + rawContactId, null, null);
+                    if (phones != null) {
+                        while (phones.moveToNext()) {
+                            String number = phones.getString(phones.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER));
+                            int type = phones.getInt(phones.getColumnIndex(ContactsContract.CommonDataKinds.Phone.TYPE));
+                            switch (type) {
+                                case ContactsContract.CommonDataKinds.Phone.TYPE_HOME:
+                                    // do something with the Home number here...
+                                    break;
+                                case ContactsContract.CommonDataKinds.Phone.TYPE_MOBILE:
+                                    for (Map.Entry<String, String> entry : mPhoneMap.entrySet()) {
+                                        if (entry.getKey().equals(number.substring(0, entry.getKey().length()))) {
+                                            updatePhoneNumber(getContentResolver(), rawContactId, ContactsContract.CommonDataKinds.Phone.TYPE_HOME,
+                                                    entry.getValue() + number.substring(entry.getKey().length(), number.length()));
+                                        }
+                                    }
+                                    break;
+                                case ContactsContract.CommonDataKinds.Phone.TYPE_WORK:
+                                    // do something with the Work number here...
+                                    break;
+                            }
+                        }
+                        phones.close();
+                    }
+
+                } while (cursor.moveToNext());
+            }
+            cursor.close();
+        }
+
+        return rawContactId;
+    }
 
     /* Get raw contact id by contact given name and family name.
      *  Return raw contact id.
@@ -189,38 +256,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         return rawContactId;
     }
 
-
-    /*
-     * Update contact phone number by contact name.
-     * Return update contact number, commonly there should has one contact be updated.
-     */
-    private int updateContactPhoneByName(String givenName, String familyName) {
-        int ret = 0;
-
-        ContentResolver contentResolver = getContentResolver();
-
-        // Get raw contact id by display name.
-        long rawContactId = getRawContactIdByName(givenName, familyName);
-
-        // Update data table phone number use contact raw contact id.
-        if (rawContactId > -1) {
-            // Update mobile phone number.
-            updatePhoneNumber(contentResolver, rawContactId, ContactsContract.CommonDataKinds.Phone.TYPE_MOBILE, "66666666666666");
-
-            // Update work mobile phone number.
-            updatePhoneNumber(contentResolver, rawContactId, ContactsContract.CommonDataKinds.Phone.TYPE_WORK_MOBILE, "8888888888888888");
-
-            // Update home phone number.
-            updatePhoneNumber(contentResolver, rawContactId, ContactsContract.CommonDataKinds.Phone.TYPE_HOME, "99999999999999999");
-
-            ret = 1;
-        } else {
-            ret = 0;
-        }
-
-        return ret;
-    }
-
     /* Update phone number with raw contact id and phone type.*/
     private void updatePhoneNumber(ContentResolver contentResolver, long rawContactId, int phoneType, String newPhoneNumber) {
         // Create content values object.
@@ -256,5 +291,36 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         // Get update data count.
         int updateCount = contentResolver.update(dataUri, contentValues, whereClauseBuf.toString(), null);
+    }
+
+    /*
+     * Update contact phone number by contact name.
+     * Return update contact number, commonly there should has one contact be updated.
+     */
+    private int updateContactPhoneByName(String givenName, String familyName) {
+        int ret = 0;
+
+        ContentResolver contentResolver = getContentResolver();
+
+        // Get raw contact id by display name.
+        long rawContactId = getRawContactIdByName(givenName, familyName);
+
+        // Update data table phone number use contact raw contact id.
+        if (rawContactId > -1) {
+            // Update mobile phone number.
+            updatePhoneNumber(contentResolver, rawContactId, ContactsContract.CommonDataKinds.Phone.TYPE_MOBILE, "66666666666666");
+
+            // Update work mobile phone number.
+            updatePhoneNumber(contentResolver, rawContactId, ContactsContract.CommonDataKinds.Phone.TYPE_WORK_MOBILE, "8888888888888888");
+
+            // Update home phone number.
+            updatePhoneNumber(contentResolver, rawContactId, ContactsContract.CommonDataKinds.Phone.TYPE_HOME, "99999999999999999");
+
+            ret = 1;
+        } else {
+            ret = 0;
+        }
+
+        return ret;
     }
 }
